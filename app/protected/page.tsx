@@ -4,7 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import FetchDataSteps from "@/components/tutorial/FetchDataSteps";
 import Header from "@/components/Header";
 import { redirect } from "next/navigation";
-
+// import { Checkout } from "@/components/paddle/checkout";
+import { PaddleLoader } from "@/components/paddle/PaddleLoader";
 export default async function ProtectedPage() {
   const supabase = createClient();
 
@@ -18,6 +19,8 @@ export default async function ProtectedPage() {
 
   return (
     <div className="flex-1 w-full flex flex-col gap-20 items-center">
+      {/* <Checkout /> */}
+      <PaddleLoader />
       <div className="w-full">
         <div className="py-6 font-bold bg-purple-950 text-center">
           This is a protected page that you can only see as an authenticated

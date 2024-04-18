@@ -6,6 +6,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@paddle/paddle-js": "^1.0.3",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "autoprefixer": "10.4.17",
