@@ -4,6 +4,11 @@ import React from "react";
 
 const CheckoutButton: React.FC = () => {
   const handleClick = () => {
+    if (!window.Paddle) {
+      console.error("Paddle is not available.");
+      return;
+    }
+
     // Open the Paddle checkout with desired settings
     window.Paddle.Checkout.open({
       // Add your desired settings here
