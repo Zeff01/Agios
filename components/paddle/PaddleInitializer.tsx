@@ -8,9 +8,9 @@ const PaddleInitializer: React.FC = () => {
     script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
     script.async = true;
     script.onload = () => {
-      window.Paddle.Environment.set("sandbox");
+      window.Paddle?.Environment.set("sandbox");
       console.log("Paddle script loaded successfully");
-      window.Paddle.Initialize({
+      window.Paddle?.Initialize({
         token: "test_6713304c52ce4f81edd625ff74c",
       });
     };

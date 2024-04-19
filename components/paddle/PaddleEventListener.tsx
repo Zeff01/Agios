@@ -4,21 +4,28 @@ import React, { useEffect } from "react";
 
 const PaddleEventListener: React.FC = () => {
   useEffect(() => {
-    const handleCheckoutCompleted = (event) => {
+    const handleCheckoutCompleted = (event: CustomEvent) => {
       console.log("Checkout completed event:", event.detail);
       // Extract relevant data from the event and save it to Supabase or perform other actions
-      const checkoutData = event.detail.data;
+      const checkoutData = (event.detail as any).data; // Assuming 'data' is a property of the event detail
       saveToSupabase(checkoutData);
     };
 
-    window.addEventListener("checkout.completed", handleCheckoutCompleted);
+    window.addEventListener(
+      "checkout.completed" as any,
+      handleCheckoutCompleted
+    ); // Type assertion to 'any'
 
     return () => {
-      window.removeEventListener("checkout.completed", handleCheckoutCompleted);
+      window.removeEventListener(
+        "checkout.completed" as any,
+        handleCheckoutCompleted
+      ); // Type assertion to 'any'
     };
   }, []);
 
-  const saveToSupabase = (checkoutData) => {
+  const saveToSupabase = (checkoutData: any) => {
+    // Specify the type of 'checkoutData' as 'any'
     // Code to save checkout data to Supabase
     // Replace this with your actual Supabase saving logic
     console.log("Saving checkout data to Supabase:", checkoutData);
