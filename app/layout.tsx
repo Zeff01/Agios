@@ -1,4 +1,6 @@
 import { GeistSans } from "geist/font/sans";
+import PaddleInitializer from "@/components/paddle/PaddleInitializer";
+import PaddleEventListener from "@/components/paddle/PaddleEventListener";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -22,6 +24,8 @@ export default function RootLayout({
         <main className="min-h-screen flex flex-col items-center">
           {children}
         </main>
+        <PaddleInitializer />
+        <PaddleEventListener />
       </body>
     </html>
   );
