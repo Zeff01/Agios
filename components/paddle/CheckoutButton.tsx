@@ -40,6 +40,10 @@ const CheckoutButton: React.FC = () => {
           priceId: "pri_01hvn8w5629ejjqb3y21xqmfe9",
           quantity: 1,
         },
+        {
+          priceId: "pri_01hvn8vsztet8dfkc9zn8znd0z",
+          quantity: 1,
+        },
       ],
       successUrl: "https://your-success-url.com",
       customer: {

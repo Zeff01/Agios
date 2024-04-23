@@ -2,7 +2,16 @@ import { type NextRequest } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  // Parse the request body before updating the session
+  const parsedBody = await request.text();
+
+  // Create a new object to hold the modified properties
+  const modifiedRequest = {
+    ...request,
+    body: parsedBody ? JSON.parse(parsedBody) : {},
+  };
+
+  return await updateSession(modifiedRequest);
 }
 
 export const config = {
