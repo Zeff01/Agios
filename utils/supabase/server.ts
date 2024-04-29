@@ -31,5 +31,3 @@ export const createClient = () => {
     }
   );
 };
-
-// Rest of the code remains the same...

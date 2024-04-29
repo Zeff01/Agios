@@ -1,11 +1,21 @@
 import { createClient } from "@/utils/supabase/server";
-import type { NextApiRequest } from "next";
+import type { NextApiResponse } from "next";
 import { NextResponse } from "next/server";
 
-export async function POST(req: NextApiRequest) {
+// Define an interface for the request body
+interface SignUpRequestBody {
+  email: string;
+  password: string;
+  firstname: string;
+  lastname: string;
+}
+
+export async function POST(req: Request, res: NextApiResponse) {
   try {
-    const { email, password, firstname, lastname } = req.body;
-    console.log("req.body:", req.body);
+    // Typecast req.body to SignUpRequestBody
+    const { email, password, firstname, lastname }: SignUpRequestBody =
+      await req.json();
+
     const supabase = createClient();
 
     if (!email || !password) {
@@ -14,32 +24,43 @@ export async function POST(req: NextApiRequest) {
         { status: 400 }
       );
     }
-    const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-    });
+    // Call supabase.auth.getUser() before supabase.auth.getSession()
+    await supabase.auth.getUser();
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
+      {
+        email,
+        password,
+      }
+    );
 
-    if (error) {
-      console.error("Signup error:", error);
+    if (signUpError) {
+      console.error("Signup error:", signUpError);
       return NextResponse.json(
         { error: "Could not authenticate user" },
         { status: 401 }
       );
     }
 
-    const { user } = data;
+    const { user } = signUpData;
+    console.log("user:", user);
 
     if (user) {
-      const profileData = { id: user.id, firstname, lastname, isPaid: false };
+      const profileData = {
+        userId: user.id,
+        firstName: firstname,
+        lastName: lastname,
+        isPaid: false,
+        email: email,
+      };
 
       const { data: profile, error: profileError } = await supabase
-        .from("profiles")
+        .from("users")
         .insert([profileData]);
 
       if (profileError) {
         console.error("Profile creation error:", profileError);
         return NextResponse.json(
-          { error: "Failed to set up user profile" },
+          { error: profileError.message || "Failed to set up user profile" },
           { status: 500 }
         );
       }

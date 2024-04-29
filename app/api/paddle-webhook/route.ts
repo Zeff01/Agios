@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 
 interface WebhookData {
   data: {
@@ -8,8 +8,6 @@ interface WebhookData {
     status: string;
     customer_id: string;
     currency_code: string;
-    billing_period?: { ends_at: string; starts_at: string };
-    billing_cycle?: { interval: string; frequency: number };
     details?: {
       totals: {
         total: number;
@@ -18,37 +16,40 @@ interface WebhookData {
         price_id: string;
         quantity: number;
       }[];
-      payout_totals: object;
-      tax_rates_used: any[];
-      adjusted_totals: object;
+    };
+    custom_data: {
+      credits: number;
+      plan_type: string;
+      isUnlimited: boolean;
+      autonomyMode: boolean;
+      deepWebResearch: boolean;
+      futureScheduling: boolean;
+      voiceCommunication: boolean;
+      userId: string;
+      userEmail: string;
     };
   };
-  event_id: string; // Include event_id from webhookData directly
-  event_type: string; // Include event_type from webhookData directly
-  notification_id: string; // Include notification_id from webhookData directly
+  event_id: string;
+  event_type: string;
+  notification_id: string;
 }
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = createClient();
 
-function processWebhookData(webhookData: WebhookData) {
+async function processWebhookData(webhookData: WebhookData) {
   const {
     id: transaction_id,
     origin,
     status,
     customer_id,
     currency_code,
-    billing_period,
-    billing_cycle,
-    details, // Include the details object
+    details,
+    custom_data,
   } = webhookData.data;
 
-  // Define types for current_billing_period and billing_cycle with default values
-  const { ends_at = "", starts_at = "" } = billing_period || {};
-  const { interval = "", frequency = 0 } = billing_cycle || {};
+  const paymentDate = new Date();
+  const expirationDate = new Date();
+  expirationDate.setMonth(expirationDate.getMonth() + 1);
 
   const supabaseData = {
     transaction_id,
@@ -56,42 +57,100 @@ function processWebhookData(webhookData: WebhookData) {
     status,
     customer_id,
     currency_code,
-    billing_period_ends_at: ends_at,
-    billing_period_starts_at: starts_at,
-    event_id: webhookData.event_id, // Include event_id from webhookData directly
-    event_type: webhookData.event_type, // Include event_type from webhookData directly
-    notification_id: webhookData.notification_id, // Include notification_id from webhookData directly
-    billing_cycle_interval: interval,
-    billing_cycle_frequency: frequency,
-    // Include total, price_id, id, and quantity from details object if it exists
+    event_id: webhookData.event_id,
+    event_type: webhookData.event_type,
+    notification_id: webhookData.notification_id,
     total: details?.totals.total || 0,
     price_id: details?.line_items[0]?.price_id || "",
     quantity: details?.line_items[0]?.quantity || 0,
+    userId: custom_data.userId,
   };
 
-  return supabaseData;
+  const userPlanData = {
+    credits: custom_data.credits,
+    plan_type: custom_data.plan_type,
+    isUnlimited: custom_data.isUnlimited,
+    autonomyMode: custom_data.autonomyMode,
+    deepWebResearch: custom_data.deepWebResearch,
+    futureScheduling: custom_data.futureScheduling,
+    voiceCommunication: custom_data.voiceCommunication,
+    paymentDate: paymentDate,
+    expirationDate: expirationDate,
+    userId: custom_data.userId,
+    userEmail: custom_data.userEmail,
+  };
+
+  return { supabaseData, userPlanData };
 }
 
 export async function POST(req: any, res: any) {
   if (req.method === "POST") {
     try {
       const webhookData: WebhookData = await req.json();
-      console.log("Received Paddle webhook data:", webhookData);
-      console.log("DETAILS>>>", webhookData.data.details);
+      console.log("webhookData:", webhookData);
 
-      const processedData = processWebhookData(webhookData);
-      const transactionId = webhookData.data.id;
+      const { supabaseData, userPlanData } = await processWebhookData(
+        webhookData
+      );
+
+      // Check if the user already has a row in the user_plan table
+      const { data: existingUserPlan, error: userPlanError } = await supabase
+        .from("user_plan")
+        .select()
+        .eq("userId", userPlanData.userId);
+
+      if (userPlanError) {
+        throw userPlanError;
+      }
+
+      if (existingUserPlan.length > 0) {
+        if (
+          existingUserPlan[0].plan_type === "basic" &&
+          userPlanData.plan_type === "pro"
+        ) {
+          const updateUserPlan = {
+            credits: existingUserPlan[0].credits / 2 + userPlanData.credits,
+            plan_type: userPlanData.plan_type,
+            futureScheduling: true,
+            voiceCommunication: true,
+            deepWebResearch: true,
+            autonomyMode: true,
+          };
+          await supabase
+            .from("user_plan")
+            .update(updateUserPlan)
+            .eq("userId", userPlanData.userId);
+        } else {
+          const updateUserCredits = {
+            credits: existingUserPlan[0].credits + userPlanData.credits,
+          };
+          const { data: updatedUserPlanResult, error: updateError } =
+            await supabase
+              .from("user_plan")
+              .update(updateUserCredits)
+              .eq("userId", userPlanData.userId);
+        }
+      } else {
+        // User does not have a row, insert a new row
+        const { data: userPlanResult, error: insertError } = await supabase
+          .from("user_plan")
+          .insert(userPlanData);
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
 
       // Save processedData to Supabase
       const { data, error } = await supabase
         .from("users_payment_data")
-        .insert({ ...processedData, transaction_id: transactionId });
+        .insert(supabaseData);
 
       if (error) {
         throw error;
       }
 
-      console.log("Data saved to Supabase:", data);
+      console.log("Data saved to Supabase:");
 
       return NextResponse.json(
         { message: "Webhook data received and processed successfully" },
