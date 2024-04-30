@@ -2,41 +2,20 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
+import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 
 interface TapupButtonProps {
-  planType: "basic" | "pro" | null; // Plan type can be null
-  currentCredits: number;
+  planType: "basic" | "pro" | null;
 }
 
-const TapupButton: React.FC<TapupButtonProps> = ({
-  planType,
-  currentCredits,
-}) => {
-  const [userEmail, setUserEmail] = useState("");
-  const [userId, setUserId] = useState("");
-  const supabase = createClient();
-
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-        if (error) throw error;
-        setUserEmail(user?.email || "");
-        setUserId(user.id);
-      } catch (error) {
-        console.error("Error fetching user email:", error.message);
-      }
-    };
-
-    fetchUserDetails();
-  }, []);
-
-  if (!userEmail || !userId || !planType) {
-    return <div>Loading...</div>; // Ensure all necessary data is loaded
+const TapupButton: React.FC<TapupButtonProps> = ({ planType }) => {
+  const { user, userPlan } = useUserAndPlan();
+  if (!user || !userPlan || !planType) {
+    return <div>Loading...</div>;
   }
+  const window: any = null;
+  const userEmail = user.email;
+  const userId = user.id;
 
   const creditsOptions = {
     basic: [100000, 210000, 450000],
@@ -112,6 +91,7 @@ const TapupButton: React.FC<TapupButtonProps> = ({
             key={`tapup-${index}`}
             className="p-8"
             onClick={() => handleClick(index)}
+            disabled={!userId || !userEmail}
           >
             Add {index === 4 ? "Unlimited" : credits.toLocaleString()} Credits
           </Button>

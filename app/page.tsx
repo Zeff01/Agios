@@ -14,7 +14,6 @@ export default function Index() {
   };
 
   const isSupabaseConnected = canInitSupabaseClient();
-  console.log("isSupabaseConnected:", isSupabaseConnected);
 
   // Dummy data for blog posts
   const blogPosts = [

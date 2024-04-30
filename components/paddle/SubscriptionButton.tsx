@@ -3,18 +3,26 @@ import { createClient } from "@/utils/supabase/client";
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckoutTypes } from "@/types/paddle-types";
+import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 
 interface SubscriptionButtonProps {
   planType: "basic" | "pro";
-  setWebHookLoading : any;
+  setWebHookLoading: any;
 }
 
 const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
   planType,
   setWebHookLoading,
 }) => {
-  const [userEmail, setUserEmail] = useState("");
-  const [userId, setUserId] = useState("");
+  const { user, isLoading, isError } = useUserAndPlan();
+  // Early return for loading or error states
+  if (isLoading) return <div>Loading...</div>;
+  if (isError || !user)
+    return <div>Error loading user details or user not found</div>;
+
+  const userEmail = user.email;
+  const userId = user.id;
+  const window: any = null;
   const supabase = createClient();
 
   useEffect(() => {
@@ -25,8 +33,6 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
           error,
         }: { data?: any; error?: any } = await supabase.auth.getUser();
         if (error) throw error;
-        setUserEmail(user?.email || "");
-        setUserId(user.id);
       } catch (error: any) {
         console.error("Error fetching user email:", error?.message);
       }
@@ -36,13 +42,14 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
   }, []);
 
   if (!userEmail) {
-    return <div>Loading...</div>; // Handle loading state if needed
+    return <div>User email is required for this operation.</div>;
   }
 
   const handleClick = () => {
     setWebHookLoading(true);
     if (!window.Paddle) {
       console.error("Paddle is not available.");
+      setWebHookLoading(false);
       return;
     }
 

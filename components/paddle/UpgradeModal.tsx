@@ -9,36 +9,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { CheckoutTypes } from "@/types/paddle-types";
+import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  planType: string;
+  planType: string | undefined;
 }
 
 const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
-  const [userEmail, setUserEmail] = useState("");
-  const [userId, setUserId] = useState("");
-  const supabase = createClient();
+  const { user, isLoading } = useUserAndPlan();
   const [loading, setLoading] = useState(false);
+  const window: any = null;
+  const supabase = createClient();
 
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const {
-          data: { user },
-          error,
-        }: { data?: any; error?: any } = await supabase.auth.getUser();
-        if (error) throw error;
-        setUserEmail(user?.email || "");
-        setUserId(user.id);
-      } catch (error: any) {
-        console.error("Error fetching user email:", error?.message);
-      }
-    };
+  // Check for necessary data
+  if (isLoading || !user) {
+    return <div>Loading...</div>;
+  }
 
-    fetchUserDetails();
-  }, []);
+  // You can now directly use `user.email` and `user.id`
+  const userEmail = user.email;
+  const userId = user.id;
 
   if (!userEmail) {
     return <div>Loading...</div>; // Handle loading state if needed
@@ -100,7 +92,7 @@ const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
             isUnlimited: false,
           })
           .eq("userId", userId);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error updating user plan:", error.message);
       } finally {
         setLoading(false); // Reset loading state regardless of success or failure
@@ -115,7 +107,9 @@ const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
           <DialogTitle>
             {planType === "basic"
               ? "Upgrade to Pro Plan"
-              : "Downgrade to Basic Plan"}
+              : planType
+              ? "Downgrade to Basic Plan"
+              : "Select a Plan"}
           </DialogTitle>
           <DialogDescription>
             {planType === "basic"

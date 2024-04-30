@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { SubmitButton } from "./submit-button";
-import { toast } from "react-toastify";
+import { useToast } from "@/components/ui/use-toast";
 interface LoginProps {
   searchParams: { message: string };
 }
@@ -24,8 +24,8 @@ export default function Login({ searchParams }: LoginProps) {
     lastname: "",
   });
   const [activeTab, setActiveTab] = useState<"signIn" | "signUp">("signIn");
+  const { toast } = useToast();
 
-  // Handle form input changes
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormState((prevState) => ({ ...prevState, [name]: value }));
@@ -37,12 +37,14 @@ export default function Login({ searchParams }: LoginProps) {
   ) => {
     event.preventDefault();
 
-    // Validate fields here before submitting
     if (
       activeTab === "signUp" &&
       formState.password !== formState.confirmPassword
     ) {
-      toast.error("Passwords do not match.");
+      toast({
+        title: "Error",
+        description: "Passwords do not match.",
+      });
       return;
     }
 
@@ -55,7 +57,7 @@ export default function Login({ searchParams }: LoginProps) {
     if (response.ok) {
       window.location.href = result.redirectTo;
     } else {
-      toast.error(result.message);
+      toast({ title: "Error", description: result.message });
     }
   };
 

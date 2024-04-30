@@ -15,13 +15,18 @@ import {
 import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 import { mutate } from "swr";
 import ClipLoader from "react-spinners/ClipLoader";
+import useLoadingStore from "@/store/loadingStore";
 
-export default function ProtectedPage() {
+export default function SubscriptionPage() {
+  const {
+    initialLoading,
+    webHookLoading,
+    setInitialLoading,
+    setWebHookLoading,
+  } = useLoadingStore();
   const router = useRouter();
   const { toast } = useToast();
   const { user, userPlan, isLoading, isError } = useUserAndPlan();
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [webHookLoading, setWebHookLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setInitialLoading(false), 2000);
@@ -34,7 +39,6 @@ export default function ProtectedPage() {
         toast({
           title: "Error",
           description: "Failed to load data, please try again.",
-          status: "error",
         });
         return;
       }
@@ -59,15 +63,14 @@ export default function ProtectedPage() {
     router,
   ]);
 
-  const checkUserPlan = async () => {
+  let intervalId: NodeJS.Timeout | null = null;
+
+  const checkUserPlan = useCallback(async () => {
     try {
-      // Assuming you have a way to directly trigger a re-fetch or receive a push update
       const updatedPlan = await mutate("user_plan");
       if (updatedPlan && updatedPlan.plan_type) {
-        // Make sure updatedPlan has the data you expect
         console.log("Plan updated, navigating to home page.");
-        clearInterval(intervalId); // Clear the interval using a saved interval ID
-
+        if (intervalId) clearInterval(intervalId);
         router.push("/home");
       }
     } catch (error) {
@@ -76,17 +79,16 @@ export default function ProtectedPage() {
         title: "Error",
         description:
           "Could not confirm the subscription update. Please try again.",
-        status: "error",
       });
     }
-  };
+  }, [intervalId, router, toast]);
+
   useEffect(() => {
-    let interval;
     if (webHookLoading) {
-      interval = setInterval(checkUserPlan, 5000); // Poll every 5 seconds
+      intervalId = setInterval(checkUserPlan, 5000);
     }
     return () => {
-      if (interval) clearInterval(interval); // Ensure the interval is cleared correctly
+      if (intervalId) clearInterval(intervalId);
     };
   }, [webHookLoading, checkUserPlan]);
 

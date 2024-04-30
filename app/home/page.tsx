@@ -1,5 +1,4 @@
 "use client";
-import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,27 +7,31 @@ import UpgradeModal from "@/components/paddle/UpgradeModal";
 import { Button } from "@/components/ui/button";
 import { debounce } from "lodash";
 import ClipLoader from "react-spinners/ClipLoader";
+import useLoadingStore from "@/store/loadingStore";
+import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 
 export default function HomePage() {
   const [isModalOpen, setModalOpen] = useState(false);
-  const { user, userPlan, isLoading, isError } = useUserAndPlan();
-  console.log("isError:", isError);
-  console.log("userPlan:", userPlan);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const { user, userPlan, isLoading, isError, mutateUser, mutateUserPlan } =
+    useUserAndPlan();
+  const {
+    initialLoading,
+    setInitialLoading,
+    webHookLoading,
+    setWebHookLoading,
+  } = useLoadingStore();
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initial delay to stabilize the user interface before any action
     const timer = setTimeout(() => {
       setInitialLoading(false);
-    }, 2000); // 2-second delay
-
+    }, 2000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [setInitialLoading]);
 
   const debouncedRedirect = debounce(() => {
-    if (!initialLoading) {
+    if (!initialLoading && !webHookLoading) {
       if (!user) {
         console.error("No user found, redirecting to login.");
         router.push("/login");
@@ -40,10 +43,16 @@ export default function HomePage() {
   }, 1500);
 
   useEffect(() => {
-    if (!isLoading && !isError) {
-      debouncedRedirect();
-    }
-  }, [user, userPlan, isLoading, isError, initialLoading, router]);
+    debouncedRedirect();
+  }, [
+    user,
+    userPlan,
+    isLoading,
+    isError,
+    initialLoading,
+    webHookLoading,
+    router,
+  ]);
 
   const handleUpgrade = () => {
     setModalOpen(true);
@@ -55,20 +64,28 @@ export default function HomePage() {
 
   const handleModalClose = async () => {
     setModalOpen(false);
-    // Trigger a local state update or re-fetch as needed
-    toast({
-      title: "Transaction Completed",
-      description: "Your plan change has been successfully processed.",
-    });
+    try {
+      await Promise.all([mutateUser(), mutateUserPlan()]);
+      toast({
+        title: "Transaction Completed",
+        description: "Your plan change has been successfully processed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please check your connection.",
+      });
+    }
   };
 
-  if (isLoading || initialLoading) {
+  if (isLoading || initialLoading || webHookLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <ClipLoader color="#4A90E2" size={150} />
       </div>
     );
   }
+
   if (isError) return <div>Error loading user or plan data.</div>;
 
   return (
@@ -101,10 +118,11 @@ export default function HomePage() {
             {userPlan?.credits.toLocaleString()}
           </p>
         </div>
-        <TapupButton
-          planType={userPlan?.plan_type.toLowerCase()}
-          currentCredits={userPlan?.credits}
-        />
+        {userPlan && (
+          <TapupButton
+            planType={userPlan.plan_type.toLowerCase() as "basic" | "pro"}
+          />
+        )}
       </div>
     </div>
   );
