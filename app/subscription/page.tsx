@@ -22,7 +22,6 @@ export default function ProtectedPage() {
   const { user, userPlan, isLoading, isError } = useUserAndPlan();
   const [initialLoading, setInitialLoading] = useState(true);
   const [webHookLoading, setWebHookLoading] = useState(false);
-  console.log("webHookLoading:", webHookLoading);
 
   useEffect(() => {
     const timer = setTimeout(() => setInitialLoading(false), 2000);

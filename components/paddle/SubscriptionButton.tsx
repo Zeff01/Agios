@@ -6,7 +6,7 @@ import { CheckoutTypes } from "@/types/paddle-types";
 
 interface SubscriptionButtonProps {
   planType: "basic" | "pro";
-  setWebHookLoading: any;
+  setWebHookLoading : any;
 }
 
 const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
@@ -40,7 +40,6 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
   }
 
   const handleClick = () => {
-    console.log("goes here");
     setWebHookLoading(true);
     if (!window.Paddle) {
       console.error("Paddle is not available.");
