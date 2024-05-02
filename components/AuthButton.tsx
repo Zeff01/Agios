@@ -37,11 +37,11 @@ const AuthButton = () => {
 
   if (user) {
     return (
-      <div className="flex items-center gap-4 px-4 py-2 rounded-md bg-white">
-        <span className="font-medium text-gray-700">Hey, {user.email}!</span>
+      <div className="flex items-center gap-4 px-4 py-2 rounded-md">
+        <span className="font-medium text-white">Hey, {user.email}!</span>
         <button
           onClick={signOut}
-          className="py-2 px-4 rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          className="py-2 px-4 rounded-md text-white border-2 hover:bg-gray-900"
         >
           Logout
         </button>
@@ -51,7 +51,7 @@ const AuthButton = () => {
     return (
       <Link
         href="/login"
-        className="inline-block py-2 px-3 rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+        className="inline-block py-2 px-3 rounded-md text-white focus:outline-none focus:ring-2 border-2 hover:bg-gray-900"
       >
         Login
       </Link>

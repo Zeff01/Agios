@@ -1,82 +1,103 @@
+"use client";
 import AuthButton from "../components/AuthButton";
-import { createClient } from "@/utils/supabase/server";
 import { Toaster } from "@/components/ui/toaster";
 import Link from "next/link";
+import SubscriptionCard from "@/components/paddle/SubscriptionCard";
+import { useUserAndPlan } from "@/hooks/useUserAndPlan";
+import ClipLoader from "react-spinners/ClipLoader";
 
 export default function Index() {
-  const canInitSupabaseClient = () => {
-    try {
-      createClient();
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
+  const { user, userPlan, isLoading, isError } = useUserAndPlan();
 
-  const isSupabaseConnected = canInitSupabaseClient();
+  const isProUser = userPlan?.plan_type === "pro";
+  const isBasicUser = userPlan?.plan_type === "basic";
 
-  // Dummy data for blog posts
-  const blogPosts = [
-    {
-      id: 1,
-      title: "First Post",
-      summary: "This is the summary of the first post.",
-    },
-    {
-      id: 2,
-      title: "Second Post",
-      summary: "This is the summary of the second post.",
-    },
-    {
-      id: 3,
-      title: "Third Post",
-      summary: "This is the summary of the third post.",
-    },
-  ];
+  if (isLoading) {
+    return <ClipLoader color="#FFFFFF" size={150} />;
+  }
+
+  if (isError || !user) {
+    return (
+      <div className="text-center text-white">
+        <p>Error loading user details. Please try again later.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-gray-50 text-gray-800">
+    <div className="min-h-screen flex flex-col justify-between bg-black text-white">
       <Toaster />
-      <nav className="w-full border-b border-gray-300 bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto flex justify-between items-center p-4">
-          <div className="text-lg font-semibold">
+
+      {/* HEADER HERE */}
+      <nav className="w-full bg-black shadow-sm ">
+        <div className="max-w-6xl mx-auto flex justify-between items-center p-2">
+          <div className="text-md font-semibold">
             <Link href="/">AGIOS</Link>
           </div>
           <AuthButton />
         </div>
       </nav>
+
+      {/* TITLE HERE */}
       <main className="flex-grow container mx-auto text-center py-10 px-4">
-        <h1 className="text-3xl font-bold mb-6">Welcome to Your Application</h1>
-        <p className="text-gray-600 text-lg mb-8">
-          Start building something amazing.
+        <h1 className="text-4xl font-extrabold text-white sm:text-center sm:text-6xl">
+          Pricing Plans
+        </h1>
+        <p className="max-w-2xl m-auto mt-5 mb-12 text-xl text-zinc-200 sm:text-center sm:text-2xl">
+          Start building for free, then add a site plan to go live. Account
+          plans unlock additional features.
         </p>
-        <div className="space-y-4">
-          {blogPosts.map((post) => (
-            <article
-              key={post.id}
-              className="bg-white p-6 rounded-lg shadow-md"
-            >
-              <h2 className="text-2xl font-bold">{post.title}</h2>
-              <p className="text-gray-600">{post.summary}</p>
-              <Link
-                href={`/posts/${post.id}`}
-                className="text-blue-500 hover:underline mt-2 inline-block"
-              >
-                Read more
-              </Link>
-            </article>
-          ))}
+
+        {/* CONTENT HERE */}
+        <div className="items-center justify-center flex p-2">
+          <div className="flex flex-col md:flex-row  justify-center gap-8">
+            <SubscriptionCard
+              planType="basic"
+              title="Basic Plan"
+              description="Lorem ipsum dolor sit amet, consectetur"
+              price="$25/month"
+              features={["✅ 100,000 basic plan credits", "✅ Whatever plan"]}
+              disabled={isBasicUser || isProUser}
+            />
+            <SubscriptionCard
+              planType="pro"
+              title="Pro Plan"
+              description="Lorem ipsum dolor sit amet, consectetur"
+              price={
+                isBasicUser ? (
+                  <>
+                    <span className="line-through text-gray-400 text-sm">
+                      $50/month
+                    </span>{" "}
+                    $25/month
+                  </>
+                ) : (
+                  "$50/month"
+                )
+              }
+              features={[
+                "✅ 100,000 pro plan credits",
+                "✅ Future Scheduling",
+                "✅ Voice Communication",
+                "✅ Deep Web Research",
+                "✅ Autonomy Mode",
+              ]}
+              disabled={isProUser}
+            />
+          </div>
         </div>
+
+        {/* FOOTER HERE */}
         <div className="mt-10">
-          <Link
+          {/* <Link
             href="/subscription"
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
           >
             Subscribe Now
-          </Link>
+          </Link> */}
         </div>
       </main>
-      <footer className="w-full py-4 border-t border-gray-300 bg-white">
+      <footer className="w-full py-4 border-t border-gray-300">
         <div className="max-w-6xl mx-auto flex justify-center text-xs">
           <p>
             Powered by{" "}

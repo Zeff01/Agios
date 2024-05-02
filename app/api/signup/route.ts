@@ -42,7 +42,6 @@ export async function POST(req: Request, res: NextApiResponse) {
     }
 
     const { user } = signUpData;
-    console.log("user:", user);
 
     if (user) {
       const profileData = {

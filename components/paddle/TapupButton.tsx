@@ -1,58 +1,62 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/utils/supabase/client";
 import { useUserAndPlan } from "@/hooks/useUserAndPlan";
+import { creditsOptions, PlanType } from "@/constants/creditsOptions";
 
 interface TapupButtonProps {
-  planType: "basic" | "pro" | null;
+  planType: string; // Received as a general string
+  credits: number;
 }
 
-const TapupButton: React.FC<TapupButtonProps> = ({ planType }) => {
+const priceIds: Record<PlanType, string[]> = {
+  basic: [
+    "pri_01hw7hcfwwc0ryty445anjjhd4",
+    "pri_01hw7hejdj04se3g5s3fd4a9bq",
+    "pri_01hw7hg26q62jhf2zprxzb1khg",
+  ],
+  pro: [
+    "pri_01hw7hweaxfgp6jfhe76h76ae3",
+    "pri_01hw7hxazbark610jmxfrrq4mh",
+    "pri_01hw7hy3m0sdew684dtjqv1ggq",
+    "pri_01hw7hyzq2p6wmt1yqaz3vms6k",
+    "pri_01hw7j0eckzxkx348sdrfwb61r",
+  ],
+};
+
+const TapupButton: React.FC<TapupButtonProps> = ({ planType, credits }) => {
   const { user, userPlan } = useUserAndPlan();
   if (!user || !userPlan || !planType) {
     return <div>Loading...</div>;
   }
-  const window: any = null;
   const userEmail = user.email;
   const userId = user.id;
+  const validPlanType = planType as PlanType;
 
-  const creditsOptions = {
-    basic: [100000, 210000, 450000],
-    pro: [100000, 210000, 450000, 900000, Number.MAX_SAFE_INTEGER],
+  const getIndexByCredits = (credits: number) => {
+    const creditsArray =
+      planType === "pro" ? creditsOptions.pro : creditsOptions.basic;
+    return creditsArray.indexOf(credits);
   };
 
-  const handleClick = (tapupIndex: number) => {
+  const handleClick = (credits: number) => {
+    const tapupIndex = getIndexByCredits(credits);
     if (!window.Paddle) {
       console.error("Paddle is not available.");
       return;
     }
 
-    const priceIds = {
-      basic: [
-        "pri_01hw7hcfwwc0ryty445anjjhd4",
-        "pri_01hw7hejdj04se3g5s3fd4a9bq",
-        "pri_01hw7hg26q62jhf2zprxzb1khg",
-      ],
-      pro: [
-        "pri_01hw7hweaxfgp6jfhe76h76ae3",
-        "pri_01hw7hxazbark610jmxfrrq4mh",
-        "pri_01hw7hy3m0sdew684dtjqv1ggq",
-        "pri_01hw7hyzq2p6wmt1yqaz3vms6k",
-        "pri_01hw7j0eckzxkx348sdrfwb61r",
-      ],
-    };
+    const selectedPriceId = priceIds[validPlanType][tapupIndex];
 
-    const selectedPriceId = priceIds[planType][tapupIndex];
     const customData = {
-      credits: creditsOptions[planType][tapupIndex],
+      credits,
       isUnlimited: tapupIndex === 4,
       plan_tapup: tapupIndex + 1,
-      plan_type: planType,
-      futureScheduling: planType === "pro",
-      voiceCommunication: planType === "pro",
-      deepWebResearch: planType === "pro",
-      autonomyMode: planType === "pro",
+      plan_type: validPlanType,
+      futureScheduling: validPlanType === "pro",
+      voiceCommunication: validPlanType === "pro",
+      deepWebResearch: validPlanType === "pro",
+      autonomyMode: validPlanType === "pro",
       userId: userId,
       userEmail: userEmail,
     };
@@ -81,23 +85,12 @@ const TapupButton: React.FC<TapupButtonProps> = ({ planType }) => {
   };
 
   return (
-    <div className="p-5 bg-white shadow-lg rounded-lg">
-      <h3 className="text-xl font-semibold mb-5">
-        {planType === "basic" ? "Basic Plan Tapups" : "Pro Plan Tapups"}
-      </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {creditsOptions[planType].map((credits, index) => (
-          <Button
-            key={`tapup-${index}`}
-            className="p-8"
-            onClick={() => handleClick(index)}
-            disabled={!userId || !userEmail}
-          >
-            Add {index === 4 ? "Unlimited" : credits.toLocaleString()} Credits
-          </Button>
-        ))}
-      </div>
-    </div>
+    <Button
+      className="px-4 py-5 bg-black border-2 rounded-xl hover:text-green-500 hover:bg-black hover:border-green-500 ml-4 "
+      onClick={() => handleClick(credits)}
+    >
+      ADD
+    </Button>
   );
 };
 

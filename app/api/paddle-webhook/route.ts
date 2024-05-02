@@ -103,52 +103,51 @@ export async function POST(req: any, res: any) {
         throw userPlanError;
       }
 
-      if (existingUserPlan.length > 0) {
-        if (
-          existingUserPlan[0].plan_type === "basic" &&
-          userPlanData.plan_type === "pro"
-        ) {
-          const updateUserPlan = {
-            credits: existingUserPlan[0].credits / 2 + userPlanData.credits,
-            plan_type: userPlanData.plan_type,
-            futureScheduling: true,
-            voiceCommunication: true,
-            deepWebResearch: true,
-            autonomyMode: true,
-          };
+      switch (true) {
+        case existingUserPlan.length === 0:
+          // Insert new user plan
+          await supabase.from("user_plan").insert(userPlanData);
+          console.log("New user plan inserted.");
+          break;
+        case existingUserPlan[0].plan_type === null ||
+          existingUserPlan[0].plan_type === "null":
+          // Update null plan_type
           await supabase
             .from("user_plan")
-            .update(updateUserPlan)
+            .update({ plan_type: userPlanData.plan_type })
             .eq("userId", userPlanData.userId);
-        } else {
-          const updateUserCredits = {
-            credits: existingUserPlan[0].credits + userPlanData.credits,
-          };
-          const { data: updatedUserPlanResult, error: updateError } =
-            await supabase
-              .from("user_plan")
-              .update(updateUserCredits)
-              .eq("userId", userPlanData.userId);
-        }
-      } else {
-        // User does not have a row, insert a new row
-        const { data: userPlanResult, error: insertError } = await supabase
-          .from("user_plan")
-          .insert(userPlanData);
-
-        if (insertError) {
-          throw insertError;
-        }
+          console.log("Plan type updated from null.");
+          break;
+        case existingUserPlan[0].plan_type === "basic" &&
+          userPlanData.plan_type === "pro":
+          // Upgrade from basic to pro
+          await supabase
+            .from("user_plan")
+            .update({
+              credits: existingUserPlan[0].credits / 2 + userPlanData.credits,
+              plan_type: userPlanData.plan_type,
+              futureScheduling: true,
+              voiceCommunication: true,
+              deepWebResearch: true,
+              autonomyMode: true,
+            })
+            .eq("userId", userPlanData.userId);
+          console.log("User upgraded to Pro plan.");
+          break;
+        default:
+          // Update credits for existing plans without changing plan_type
+          await supabase
+            .from("user_plan")
+            .update({
+              credits: existingUserPlan[0].credits + userPlanData.credits,
+            })
+            .eq("userId", userPlanData.userId);
+          console.log("Credits updated.");
+          break;
       }
 
-      // Save processedData to Supabase
-      const { data, error } = await supabase
-        .from("users_payment_data")
-        .insert(supabaseData);
-
-      if (error) {
-        throw error;
-      }
+      // Save processedData to user payment data
+      await supabase.from("users_payment_data").insert(supabaseData);
 
       console.log("Data saved to Supabase:");
 

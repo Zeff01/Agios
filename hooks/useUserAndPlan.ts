@@ -12,6 +12,9 @@ interface User {
 interface UserPlan {
   plan_type: string;
   credits: number;
+  userEmail: string;
+  paymentDate: Date;
+  expirationDate: Date;
 }
 
 interface UseUserAndPlanReturn {
@@ -19,6 +22,7 @@ interface UseUserAndPlanReturn {
   userError: Error | null;
   userPlan: UserPlan | null;
   planError: Error | null;
+  firstName: string | null | undefined;
   isLoading: boolean;
   isError: boolean;
   mutateUser: KeyedMutator<User | null>;
@@ -41,11 +45,24 @@ const fetchUserPlan = async (userId: string): Promise<UserPlan | null> => {
   if (!userId) return null;
   const { data, error } = await supabase
     .from("user_plan")
-    .select("plan_type, credits")
+    .select("plan_type, credits, userEmail,paymentDate,expirationDate")
     .eq("userId", userId)
     .single();
   if (error || !data) return null;
   return data;
+};
+
+const fetchFirstName = async (userId: string): Promise<string | null> => {
+  console.log("userId:", userId);
+  const supabase = createClient();
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("users")
+    .select("firstName")
+    .eq("userId", userId)
+    .single();
+  if (error || !data) return null;
+  return data.firstName;
 };
 
 export function useUserAndPlan(): UseUserAndPlanReturn {
@@ -63,13 +80,22 @@ export function useUserAndPlan(): UseUserAndPlanReturn {
     fetchUserPlan(user?.id || "")
   );
 
+  const { data: firstName, error: firstNameError } = useSWR<
+    string | null,
+    Error
+  >(user ? ["users", user.id] : null, () => fetchFirstName(user?.id || ""));
+
+  const isLoading = !user && !userPlan && !firstName;
+  const isError = !!userError || !!planError || !!firstNameError;
+
   return {
     user: user ?? null,
+    firstName,
     userError: userError ?? null,
     userPlan: userPlan ?? null,
     planError: planError ?? null,
-    isLoading: !user && !userPlan,
-    isError: !!userError || !!planError,
+    isLoading,
+    isError,
     mutateUser,
     mutateUserPlan,
   };

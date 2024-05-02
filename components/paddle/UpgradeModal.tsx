@@ -20,7 +20,6 @@ interface UpgradeModalProps {
 const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
   const { user, isLoading } = useUserAndPlan();
   const [loading, setLoading] = useState(false);
-  const window: any = null;
   const supabase = createClient();
 
   // Check for necessary data
