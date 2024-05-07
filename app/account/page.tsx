@@ -12,9 +12,13 @@ import Link from "next/link";
 import AuthButton from "@/components/AuthButton";
 import TapupCard from "@/components/paddle/TapupCard";
 import { creditsOptions } from "@/constants/creditsOptions";
+import PaymentReminderModal from "@/components/PaymentReminderModal";
+import CreditsReminderModal from "@/components/CreditsReminderModal";
 
-export default function HomePage() {
+export default function AccountPage() {
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [isCreditsModalOpen, setCreditsModalOpen] = useState(false);
   const {
     user,
     userPlan,
@@ -37,28 +41,53 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [setInitialLoading]);
 
-  const debouncedRedirect = debounce(() => {
-    if (!initialLoading && !webHookLoading) {
-      if (!user) {
-        console.error("No user found, redirecting to login.");
-        router.push("/login");
-      } else if (!userPlan) {
-        console.log("No valid user plan found, redirecting to subscription.");
-        router.push("/subscription");
+  useEffect(() => {
+    const handleRedirect = debounce(() => {
+      if (!initialLoading && !webHookLoading) {
+        if (!user) {
+          console.error("No user found, redirecting to login.");
+          router.push("/login");
+        } else if (
+          !userPlan ||
+          userPlan.plan_type === null ||
+          userPlan.plan_type === "null"
+        ) {
+          console.log(
+            "No valid user plan found or plan type is null, redirecting."
+          );
+          router.push("/");
+        }
+      }
+    }, 1500);
+
+    handleRedirect();
+
+    return () => {
+      handleRedirect.cancel();
+    };
+  }, [user, userPlan, initialLoading, webHookLoading, router]);
+
+  useEffect(() => {
+    console.log("userPlan:", userPlan);
+    if (userPlan && userPlan.expirationDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expirationDate = new Date(userPlan.expirationDate);
+      expirationDate.setHours(0, 0, 0, 0);
+
+      console.log("today:", today.toISOString().slice(0, 10));
+      console.log("expirationDate:", expirationDate.toISOString().slice(0, 10));
+
+      if (today >= expirationDate) {
+        setPaymentModalOpen(true);
       }
     }
-  }, 1500);
-  useEffect(() => {
-    debouncedRedirect();
-  }, [
-    user,
-    userPlan,
-    isLoading,
-    isError,
-    initialLoading,
-    webHookLoading,
-    router,
-  ]);
+
+    // Check for credits zero condition
+    if (userPlan && userPlan.credits === 0) {
+      setCreditsModalOpen(true); // Open the credits reminder modal
+    }
+  }, [userPlan]);
 
   const handleUpgrade = () => {
     setModalOpen(true);
@@ -85,14 +114,14 @@ export default function HomePage() {
   };
   if (!userPlan)
     return (
-      <div className="flex justify-center items-center h-screen">
-        <ClipLoader color="#4A90E2" size={150} />
+      <div className="flex justify-center items-center h-screen bg-black">
+        <ClipLoader color="green" size={150} />
       </div>
     );
   if (isLoading || initialLoading || webHookLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <ClipLoader color="#4A90E2" size={150} />
+      <div className="flex justify-center items-center h-screen bg-black">
+        <ClipLoader color="green" size={150} />
       </div>
     );
   }
@@ -101,8 +130,8 @@ export default function HomePage() {
   const planTypeKey =
     userPlan.plan_type.toLowerCase() as keyof typeof creditsOptions;
 
-  function formatDate(dateStr: string) {
-    const date = new Date(dateStr);
+  function formatDate(dateInput: Date | string): string {
+    const date = new Date(dateInput);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -112,6 +141,24 @@ export default function HomePage() {
 
   const paymentDate = formatDate(userPlan.paymentDate);
   const expirationDate = formatDate(userPlan.expirationDate);
+
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "#22c55e";
+      case "past_due":
+        return "#f97316";
+      case "inactive":
+        return "#ef4444";
+      default:
+        return "white";
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col justify-between bg-black text-white">
       <nav className="w-full bg-black shadow-sm">
@@ -128,6 +175,14 @@ export default function HomePage() {
           <div className="flex-1 shadow-md shadow-green-400 rounded-xl p-8 flex justify-between flex-col">
             <div className="flex justify-between  ">
               <div className="flex flex-col gap-4">
+                <div
+                  style={{
+                    color: getStatusColor(userPlan.status),
+                    marginRight: "20px",
+                  }}
+                >
+                  {capitalizeFirstLetter(userPlan.status)}
+                </div>
                 <h1 className="text-md font-bold text-white sm:text-4xl">
                   Hi, Zeff 👋
                 </h1>
@@ -172,6 +227,7 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col gap-8">
             {userPlan &&
+              creditsOptions[planTypeKey] &&
               creditsOptions[planTypeKey].map((credits, index) => (
                 <TapupCard
                   key={index}
@@ -182,6 +238,14 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+      <PaymentReminderModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+      />
+      <CreditsReminderModal
+        isOpen={isCreditsModalOpen}
+        onClose={() => setCreditsModalOpen(false)}
+      />
     </div>
   );
 }

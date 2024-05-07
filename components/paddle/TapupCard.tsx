@@ -15,10 +15,15 @@ interface TapupCardProps {
 }
 
 const TapupCard = ({ planType, credits }: TapupCardProps) => {
+  const unlimitedThreshold = 9000000000000000;
+
+  const displayCredits =
+    credits >= unlimitedThreshold ? "Unlimited" : credits.toLocaleString();
+
   return (
     <Card className="border-none flex flex-row items-center rounded-lg shadow-ms shadow-green-500 bg-black text-white px-4 py-7 justify-between ">
       <CardHeader className="px-0 py-0 font-light text-xl">
-        <CardTitle>{`Add ${credits.toLocaleString()} credits to your plan.`}</CardTitle>
+        <CardTitle>{`Add ${displayCredits} credits to your plan.`}</CardTitle>
       </CardHeader>
 
       <CardFooter className="justify-center items-center flex p-0">

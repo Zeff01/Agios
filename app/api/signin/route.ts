@@ -35,7 +35,7 @@ export async function POST(req: Request, res: NextApiResponse) {
     return NextResponse.json(
       {
         message: "Authentication successful",
-        redirectTo: "/subscription",
+        redirectTo: "/",
       },
       { status: 200 }
     );

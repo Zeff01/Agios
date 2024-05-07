@@ -12,6 +12,7 @@ import SubscriptionButton from "./SubscriptionButton";
 import useLoadingStore from "@/store/loadingStore";
 import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 import UpgradeButton from "./UpgradeButton";
+import { useRouter } from "next/navigation";
 interface SubscriptionCardProps {
   planType: string | undefined;
   title: string;
@@ -31,7 +32,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const { setWebHookLoading } = useLoadingStore();
   const { userPlan } = useUserAndPlan();
   const isBasicUser = userPlan?.plan_type === "basic";
-
+  const router = useRouter();
   const cardClass = `flex flex-col rounded-lg shadow-sm divide-y divide-zinc-600 bg-zinc-900 flex-1 basis-1/3 max-w-xs text-white p-4 ${
     planType === "pro" ? "border-pink-500" : "border-none"
   }`;

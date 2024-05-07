@@ -5,24 +5,25 @@ import Link from "next/link";
 import SubscriptionCard from "@/components/paddle/SubscriptionCard";
 import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 import ClipLoader from "react-spinners/ClipLoader";
+import { Button } from "@/components/ui/button";
 
 export default function Index() {
   const { user, userPlan, isLoading, isError } = useUserAndPlan();
 
-  const isProUser = userPlan?.plan_type === "pro";
-  const isBasicUser = userPlan?.plan_type === "basic";
+  // if (isLoading) {
+  //   return <ClipLoader color="green" size={150} />;
+  // }
 
-  if (isLoading) {
-    return <ClipLoader color="#FFFFFF" size={150} />;
-  }
-
-  if (isError || !user) {
+  if (isError) {
     return (
       <div className="text-center text-white">
-        <p>Error loading user details. Please try again later.</p>
+        <p>Error loading data. Please try again later.</p>
       </div>
     );
   }
+
+  const isProUser = userPlan?.plan_type === "pro";
+  const isBasicUser = userPlan?.plan_type === "basic";
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-black text-white">

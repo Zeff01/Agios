@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { CheckoutTypes } from "@/types/paddle-types";
 import { useUserAndPlan } from "@/hooks/useUserAndPlan";
 import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import { ClipLoader } from "react-spinners";
+import usePaddle from "@/hooks/usePaddle";
 
 interface SubscriptionButtonProps {
   planType: string | undefined;
@@ -16,27 +19,45 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
 }) => {
   const { toast } = useToast();
   const { user, userPlan, isLoading, isError } = useUserAndPlan();
+  const router = useRouter();
   const isProUser = userPlan?.plan_type === "pro";
   const isBasicUser = userPlan?.plan_type === "basic";
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError || !user)
-    return <div>Error loading user details or user not found</div>;
-
-  const userEmail = user.email;
-  const userId = user.id;
-
-  if (!userEmail) {
-    return <div>User email is required for this operation.</div>;
+  if (isError && !user) {
+    return (
+      <div className="text-center text-white">
+        <p>Error occurred. Please try again later or log in if you're not.</p>
+        <Button onClick={() => router.push("/login")}>Log in</Button>
+      </div>
+    );
   }
+  const userEmail = user?.email;
+  const userId = user?.id;
 
   const handleSubscribe = () => {
+    const today = new Date();
+    const expirationDate = new Date();
+    expirationDate.setDate(today.getDate() + 30);
+
     setWebHookLoading(true);
 
+    if (!user) {
+      toast({
+        title: "Please Log In",
+        description: "You need to log in to subscribe to a plan.",
+      });
+      router.push("/login");
+      setWebHookLoading(false);
+      return;
+    }
     if (!window?.Paddle) {
       console.error("Paddle is not available.");
       setWebHookLoading(false);
       return;
+    }
+
+    if (!userEmail) {
+      return <div>User email is required for this operation.</div>;
     }
 
     if (userPlan?.plan_type === planType) {
@@ -74,6 +95,8 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
           voiceCommunication: true,
           deepWebResearch: true,
           autonomyMode: true,
+          paymentDate: today.toISOString(),
+          expirationDate: expirationDate.toISOString(),
         },
         successUrl: "https://your-success-url.com",
         customer: {
@@ -115,6 +138,8 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
           voiceCommunication: isProUser ? true : false,
           deepWebResearch: isProUser ? true : false,
           autonomyMode: isProUser ? true : false,
+          paymentDate: today.toISOString(),
+          expirationDate: expirationDate.toISOString(),
         },
         successUrl: "https://your-success-url.com",
         customer: {
@@ -132,9 +157,18 @@ const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
     <Button
       className="border px-4 py-5 rounded-sm bg-white text-black hover:bg-zinc-800 hover:text-white last:mt-4 w-full"
       onClick={handleSubscribe}
-      disabled={disabled}
+      disabled={disabled || isLoading}
     >
-      {disabled ? `You are already a ${userPlan?.plan_type} User` : "Subscribe"}
+      {isLoading ? (
+        <>
+          "Subscribe"
+          <ClipLoader color="#FFFFFF" size={20} />
+        </>
+      ) : disabled ? (
+        `You are already a ${userPlan?.plan_type} User`
+      ) : (
+        "Subscribe"
+      )}
     </Button>
   );
 };

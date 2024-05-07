@@ -1,3 +1,5 @@
+"use client";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckoutTypes } from "@/types/paddle-types";
 import { useUserAndPlan } from "@/hooks/useUserAndPlan";
@@ -16,8 +18,6 @@ const UpgradeButton: React.FC<UpgradeButtonProps> = ({
 }) => {
   const { toast } = useToast();
   const { user, userPlan, isLoading, isError } = useUserAndPlan();
-  const isProUser = userPlan?.plan_type === "pro";
-  const isBasicUser = userPlan?.plan_type === "basic";
 
   if (isLoading) return <div>Loading...</div>;
   if (isError || !user)
@@ -30,7 +30,34 @@ const UpgradeButton: React.FC<UpgradeButtonProps> = ({
     return <div>User email is required for this operation.</div>;
   }
 
-  const handleUpgrade = () => {
+  const fetchSubscriptionDetails = async (
+    subscriptionId: string | undefined
+  ) => {
+    if (!subscriptionId) {
+      console.error("Subscription ID is required for fetching details.");
+      return;
+    }
+
+    const response = await fetch(`/api/paddle-get-subscription`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ subscriptionId }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch subscription details");
+    }
+    const data = await response.json();
+    console.log("Subscription Details:", data);
+    return data;
+  };
+
+  const handleUpgrade = async () => {
+    const today = new Date();
+    const expirationDate = new Date();
+    expirationDate.setDate(today.getDate() + 30);
     setWebHookLoading(true);
 
     if (!window?.Paddle) {
@@ -38,7 +65,11 @@ const UpgradeButton: React.FC<UpgradeButtonProps> = ({
       setWebHookLoading(false);
       return;
     }
-
+    console.log("UPGRADE INTIATED!!!!");
+    const subscriptionDetails = await fetchSubscriptionDetails(
+      userPlan?.subscription_id
+    );
+    console.log("subscriptionDetails:", subscriptionDetails);
     const priceId = "pri_01hwc94xqe1vcwwn4ah3pb77b9";
 
     const checkoutOptions: CheckoutTypes = {
@@ -64,6 +95,8 @@ const UpgradeButton: React.FC<UpgradeButtonProps> = ({
         voiceCommunication: true,
         deepWebResearch: true,
         autonomyMode: true,
+        paymentDate: today.toISOString(),
+        expirationDate: expirationDate.toISOString(),
       },
       successUrl: "https://your-success-url.com",
       customer: {

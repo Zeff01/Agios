@@ -39,6 +39,10 @@ const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
 
   const handleClick = async () => {
     setLoading(true); // Set loading to true
+    const today = new Date();
+    const expirationDate = new Date();
+    expirationDate.setDate(today.getDate() + 30);
+
     if (!window.Paddle) {
       console.error("Paddle is not available.");
       setLoading(false); // Reset loading state
@@ -69,6 +73,8 @@ const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
           voiceCommunication: true,
           deepWebResearch: true,
           autonomyMode: true,
+          paymentDate: today.toISOString(),
+          expirationDate: expirationDate.toISOString(),
         },
         successUrl: "https://your-success-url.com",
         customer: {
@@ -77,7 +83,7 @@ const UpgradeModal = ({ isOpen, onClose, planType }: UpgradeModalProps) => {
       };
 
       window.Paddle.Checkout.open(checkoutOptions);
-      setLoading(false); // Reset loading state after Paddle Checkout is triggered
+      setLoading(false);
     } else {
       try {
         await supabase
