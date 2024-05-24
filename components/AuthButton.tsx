@@ -1,37 +1,62 @@
-import { createClient } from "@/utils/supabase/server";
+"use client";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { User } from "@supabase/supabase-js";
 
-export default async function AuthButton() {
+const AuthButton = () => {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const supabase = createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    checkUser();
+  }, []);
 
-  const signOut = async () => {
-    "use server";
-
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    return redirect("/login");
+  const checkUser = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error) {
+      console.error("Error fetching user:", error.message);
+      return;
+    }
+    setUser(user);
   };
 
-  return user ? (
-    <div className="flex items-center gap-4">
-      Hey, {user.email}!
-      <form action={signOut}>
-        <button className="py-2 px-4 rounded-md no-underline bg-btn-background hover:bg-btn-background-hover">
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error.message);
+      return;
+    }
+    router.push("/login");
+  };
+
+  if (user) {
+    return (
+      <div className="flex items-center gap-4 px-4 py-2 rounded-md">
+        <span className="font-medium text-white">Hey, {user.email}!</span>
+        <button
+          onClick={signOut}
+          className="py-2 px-4 rounded-md text-white border-2 hover:bg-gray-900"
+        >
           Logout
         </button>
-      </form>
-    </div>
-  ) : (
-    <Link
-      href="/login"
-      className="py-2 px-3 flex rounded-md no-underline bg-btn-background hover:bg-btn-background-hover"
-    >
-      Login
-    </Link>
-  );
-}
+      </div>
+    );
+  } else {
+    return (
+      <Link
+        href="/login"
+        className="inline-block py-2 px-3 rounded-md text-white focus:outline-none focus:ring-2 border-2 hover:bg-gray-900"
+      >
+        Login
+      </Link>
+    );
+  }
+};
+
+export default AuthButton;
